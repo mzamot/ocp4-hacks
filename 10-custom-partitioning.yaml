@@ -1,0 +1,52 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 10-custom-partitioning
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      disks:
+      - device: /dev/sda
+        partitions:
+        - label: log 
+          number: 0
+          size: 10485760
+          start: 22022144
+        - label: containers
+          number: 0
+          size: 104857600
+          start: 42993664
+      filesystems:
+      - mount:
+          device: /dev/disk/by-partlabel/log
+          format: xfs
+          label: log
+          wipeFilesystem: true
+        name: log
+      - mount:
+          device: /dev/disk/by-partlabel/containers
+          format: xfs
+          label: containers
+          wipeFilesystem: true
+        name: containers
+      files:
+      - contents:
+          source: data:;base64,IyEvYmluL2Jhc2gKc2V0IC1ldW8gcGlwZWZhaWwKCmZvciBwYXRoIGluICIkQCIKZG8KICBtYWptaW49JChmaW5kbW50IC1udnIgLW8gTUFKOk1JTiAiJHBhdGgiKQogIGRldnBhdGg9JChyZWFscGF0aCAiL3N5cy9kZXYvYmxvY2svJG1ham1pbiIpCiAgcGFydGl0aW9uPSQoY2F0ICIkZGV2cGF0aC9wYXJ0aXRpb24iKQogIHBhcmVudF9wYXRoPSQoZGlybmFtZSAiJGRldnBhdGgiKQogIHBhcmVudF9kZXZpY2U9L2Rldi8kKGJhc2VuYW1lICIke3BhcmVudF9wYXRofSIpCgogIGdyb3dwYXJ0ICIke3BhcmVudF9kZXZpY2V9IiAiJHtwYXJ0aXRpb259IiB8fCB0cnVlCgogIHhmc19ncm93ZnMgJHBhdGgKZG9uZQoKdG91Y2ggL3Zhci9saWIvY3VzdG9tLWdyb3dwYXJ0LnN0YW1wCg==
+        filesystem: root
+        mode: 0755
+        path: /usr/local/bin/grow-custom-part.sh
+    systemd:
+      units:
+      - contents: "[Unit]\nBefore=local-fs.target\n\n[Mount]\nWhere=/var/log\nWhat=/dev/disk/by-partlabel/log\n\n[Install]\nWantedBy=local-fs.target"
+        enabled: true
+        name: var-log.mount
+      - contents: "[Unit]\nBefore=local-fs.target\n\n[Mount]\nWhere=/var/lib/containers\nWhat=/dev/disk/by-partlabel/containers\n\n[Install]\nWantedBy=local-fs.target"
+        enabled: true
+        name: var-lib-containers.mount
+      - contents: "[Unit]\nDescription=Resize custom containers partition\nConditionPathExists=!/var/lib/custom-growpart.stamp\n\nAfter=local-fs.target\nRequires=var-lib-containers.mount\nRequires=var-log.mount\n\n[Service]\nType=oneshot\nExecStart=/usr/local/bin/grow-custom-part.sh /var/lib/containers /var/log\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target" 
+        enabled: true
+        name: custom-partition-resize.service
