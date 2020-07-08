@@ -1,0 +1,23 @@
+---
+destDir: "{{ lookup('env', 'HOME') }}"
+
+nics:
+  - name: bond0
+    members:
+    - eno1np0
+    - eno2np1
+    options: "mode=4 miimon=100"
+    mtu: "9000"
+  - name: bond1
+    members:
+    - ens3f0
+    - ens3f1
+    options: "mode=4 miimon=100"
+    mtu: "9000"
+
+MachineConfigPools:
+  - role: master 
+    bonds: "{{ nics }}"
+  - role: worker
+    bonds: "{{ nics }}"
+

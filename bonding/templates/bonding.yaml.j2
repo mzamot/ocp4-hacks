@@ -1,0 +1,35 @@
+#jinja2: trim_blocks: True, lstrip_blocks: True
+{% macro ifcfg_bond(name, mtu, options) %}
+  {% include "templates/ifcfg_bond.j2" %}
+{% endmacro %}
+{% macro ifcfg_nic(bond, nic) %}
+  {% include "templates/ifcfg_nic.j2" %}
+{% endmacro %}
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  creationTimestamp: null
+  labels:
+    machineconfiguration.openshift.io/role: {{ item["role"] }}
+  name: 11-{{ item["role"] }}-bonding
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      files:
+      {% for bond in item["bonds"] %}
+      - contents:
+          source: data:;base64,{{ ifcfg_bond(bond["name"], bond["mtu"], bond["options"]) | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ bond["name"] }}
+        filesystem: root
+        mode: 420
+      {% for nic in bond["members"] %}
+      - contents:
+          source: data:;base64,{{ ifcfg_nic(bond["name"], nic) | b64encode }}
+        path: /etc/sysconfig/network-scripts/ifcfg-{{ nic }}
+        filesystem: root
+        mode: 420
+      {% endfor %}
+      {% endfor %}

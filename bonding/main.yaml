@@ -1,0 +1,8 @@
+---
+- hosts: localhost 
+  tasks:
+  - name: Create bonding yaml
+    template:
+      src: templates/bonding.yaml.j2
+      dest: '{{ destDir }}/11_{{ item["role"] }}.yaml'
+    loop: "{{ MachineConfigPools }}"

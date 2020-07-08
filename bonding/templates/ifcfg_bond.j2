@@ -1,0 +1,11 @@
+DEVICE={{ name }}
+TYPE=Bond
+NAME={{ name }}
+BONDING_MASTER=yes
+BOOTPROTO=dhcp
+ONBOOT=yes
+IPV6INIT=yes
+DHCPV6C=yes
+IPV4_DHCP_TIMEOUT=2147483647
+MTU={{ mtu }}
+BONDING_OPTS="{{ options }}"
